@@ -5,11 +5,12 @@ from PyQt6.QtCore import pyqtSignal
 import pandas as pd
 from typing import Optional
 from src.data.sources.csv_source import CSVDataSource
+from src.data.sources.parquet_source import ParquetDataSource
 
 
 class DataLoaderWidget(QWidget):
     """
-    Widget for loading CSV files
+    Widget for loading CSV and Parquet files
     Emits signal when data is successfully loaded
     """
 
@@ -19,7 +20,8 @@ class DataLoaderWidget(QWidget):
     def __init__(self, parent=None):
         """Initialize data loader widget"""
         super().__init__(parent)
-        self._data_source = CSVDataSource()
+        self._csv_source = CSVDataSource()
+        self._parquet_source = ParquetDataSource()
         self._current_file = None
         self._current_data = None
         self._init_ui()
@@ -38,8 +40,8 @@ class DataLoaderWidget(QWidget):
         self._file_label = QLabel("No file loaded")
         self._file_label.setStyleSheet("font-style: italic; color: #666;")
 
-        self._load_button = QPushButton("Load CSV File")
-        self._load_button.setToolTip("Select and load a CSV file")
+        self._load_button = QPushButton("Load Data File")
+        self._load_button.setToolTip("Select and load a CSV or Parquet file")
         self._load_button.clicked.connect(self._on_load_clicked)
 
         file_layout.addWidget(self._file_label, 1)
@@ -59,14 +61,19 @@ class DataLoaderWidget(QWidget):
 
     def _on_load_clicked(self):
         """Handle load button click"""
-        # Get supported extensions
-        extensions = self._data_source.get_supported_extensions()
-        filter_str = f"CSV Files (*{' *'.join(extensions)});;All Files (*.*)"
+        # Get supported extensions from both sources
+        csv_exts = self._csv_source.get_supported_extensions()
+        parquet_exts = self._parquet_source.get_supported_extensions()
+
+        # Create filter string
+        csv_filter = f"CSV Files (*{' *'.join(csv_exts)})"
+        parquet_filter = f"Parquet Files (*{' *'.join(parquet_exts)})"
+        filter_str = f"{csv_filter};;{parquet_filter};;All Files (*.*)"
 
         # Open file dialog
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select CSV File",
+            "Select Data File",
             "",
             filter_str
         )
@@ -82,8 +89,15 @@ class DataLoaderWidget(QWidget):
             file_path: Path to file to load
         """
         try:
+            # Determine which data source to use based on file extension
+            file_lower = file_path.lower()
+            if file_lower.endswith(('.parquet', '.pq')):
+                data_source = self._parquet_source
+            else:
+                data_source = self._csv_source
+
             # Load data
-            data = self._data_source.load(file_path)
+            data = data_source.load(file_path)
 
             # Update state
             self._current_file = file_path

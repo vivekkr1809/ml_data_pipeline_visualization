@@ -10,7 +10,7 @@ class PlotOptionsWidget(QWidget):
     """
 
     # Signals emitted when options change
-    plot_type_changed = pyqtSignal(str)  # 'correlation' or 'contour'
+    plot_type_changed = pyqtSignal(str)  # 'correlation', 'contour', 'pca', or 'tsne'
     mode_changed = pyqtSignal(str)  # 'static' or 'interactive'
 
     def __init__(self, parent=None):
@@ -32,7 +32,7 @@ class PlotOptionsWidget(QWidget):
         type_label.setFixedWidth(80)
 
         self._type_combo = QComboBox()
-        self._type_combo.addItems(["Correlation", "Contour"])
+        self._type_combo.addItems(["Correlation", "Contour", "PCA Latent Space", "t-SNE Latent Space"])
         self._type_combo.setToolTip("Select the type of plot to generate")
         self._type_combo.currentTextChanged.connect(self._on_type_changed)
 
@@ -70,7 +70,13 @@ class PlotOptionsWidget(QWidget):
 
     def _on_type_changed(self, text):
         """Handle plot type change"""
-        plot_type = 'contour' if text == 'Contour' else 'correlation'
+        type_map = {
+            'Correlation': 'correlation',
+            'Contour': 'contour',
+            'PCA Latent Space': 'pca',
+            't-SNE Latent Space': 'tsne'
+        }
+        plot_type = type_map.get(text, 'correlation')
         self.plot_type_changed.emit(plot_type)
 
     def _on_mode_changed(self):
@@ -83,9 +89,15 @@ class PlotOptionsWidget(QWidget):
         Get currently selected plot type
 
         Returns:
-            'correlation' or 'contour'
+            'correlation', 'contour', 'pca', or 'tsne'
         """
-        return 'contour' if self._type_combo.currentText() == 'Contour' else 'correlation'
+        type_map = {
+            'Correlation': 'correlation',
+            'Contour': 'contour',
+            'PCA Latent Space': 'pca',
+            't-SNE Latent Space': 'tsne'
+        }
+        return type_map.get(self._type_combo.currentText(), 'correlation')
 
     def get_mode(self) -> str:
         """
@@ -98,7 +110,13 @@ class PlotOptionsWidget(QWidget):
 
     def set_plot_type(self, plot_type: str):
         """Set plot type programmatically"""
-        index = 1 if plot_type == 'contour' else 0
+        index_map = {
+            'correlation': 0,
+            'contour': 1,
+            'pca': 2,
+            'tsne': 3
+        }
+        index = index_map.get(plot_type, 0)
         self._type_combo.setCurrentIndex(index)
 
     def set_mode(self, mode: str):
