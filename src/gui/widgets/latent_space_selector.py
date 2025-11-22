@@ -1,7 +1,7 @@
 """Latent space feature selector widget for PCA and t-SNE"""
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QComboBox,
                              QLabel, QPushButton, QGroupBox, QCheckBox,
-                             QSpinBox, QDoubleSpinBox)
+                             QSpinBox, QDoubleSpinBox, QSizePolicy)
 from PyQt6.QtCore import pyqtSignal
 import pandas as pd
 from typing import Optional, List
@@ -45,31 +45,32 @@ class LatentSpaceSelectorWidget(QWidget):
         # Target column selection (optional, for coloring)
         target_layout = QHBoxLayout()
         target_label = QLabel("Target Column:")
-        target_label.setFixedWidth(120)
+        target_label.setMinimumWidth(100)
         target_label.setToolTip("Optional column for coloring points")
 
         self._target_combo = QComboBox()
         self._target_combo.setToolTip("Select column for coloring (optional)")
         self._target_combo.addItem("(None)")
+        self._target_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        target_layout.addWidget(target_label)
-        target_layout.addWidget(self._target_combo)
+        target_layout.addWidget(target_label, 0)
+        target_layout.addWidget(self._target_combo, 1)
         group_layout.addLayout(target_layout)
 
         # Components selection
         comp_layout = QHBoxLayout()
         comp_label = QLabel("Components:")
-        comp_label.setFixedWidth(120)
+        comp_label.setMinimumWidth(100)
         comp_label.setToolTip("Number of output dimensions (2 or 3)")
 
         self._components_spin = QSpinBox()
         self._components_spin.setRange(2, 3)
         self._components_spin.setValue(2)
         self._components_spin.setToolTip("2D or 3D visualization")
+        self._components_spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        comp_layout.addWidget(comp_label)
-        comp_layout.addWidget(self._components_spin)
-        comp_layout.addStretch()
+        comp_layout.addWidget(comp_label, 0)
+        comp_layout.addWidget(self._components_spin, 1)
         group_layout.addLayout(comp_layout)
 
         # t-SNE specific parameters (hidden for PCA)
@@ -83,23 +84,23 @@ class LatentSpaceSelectorWidget(QWidget):
         # Perplexity
         perp_layout = QHBoxLayout()
         perp_label = QLabel("Perplexity:")
-        perp_label.setFixedWidth(120)
+        perp_label.setMinimumWidth(100)
         perp_label.setToolTip("Balances local vs global structure (5-50)")
 
         self._perplexity_spin = QSpinBox()
         self._perplexity_spin.setRange(5, 100)
         self._perplexity_spin.setValue(30)
         self._perplexity_spin.setToolTip("Higher = more global structure")
+        self._perplexity_spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        perp_layout.addWidget(perp_label)
-        perp_layout.addWidget(self._perplexity_spin)
-        perp_layout.addStretch()
+        perp_layout.addWidget(perp_label, 0)
+        perp_layout.addWidget(self._perplexity_spin, 1)
         tsne_layout.addLayout(perp_layout)
 
         # Learning rate
         lr_layout = QHBoxLayout()
         lr_label = QLabel("Learning Rate:")
-        lr_label.setFixedWidth(120)
+        lr_label.setMinimumWidth(100)
         lr_label.setToolTip("Optimization learning rate (10-1000)")
 
         self._learning_rate_spin = QDoubleSpinBox()
@@ -107,16 +108,16 @@ class LatentSpaceSelectorWidget(QWidget):
         self._learning_rate_spin.setValue(200)
         self._learning_rate_spin.setDecimals(0)
         self._learning_rate_spin.setToolTip("Higher = larger steps")
+        self._learning_rate_spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        lr_layout.addWidget(lr_label)
-        lr_layout.addWidget(self._learning_rate_spin)
-        lr_layout.addStretch()
+        lr_layout.addWidget(lr_label, 0)
+        lr_layout.addWidget(self._learning_rate_spin, 1)
         tsne_layout.addLayout(lr_layout)
 
         # Iterations
         iter_layout = QHBoxLayout()
         iter_label = QLabel("Iterations:")
-        iter_label.setFixedWidth(120)
+        iter_label.setMinimumWidth(100)
         iter_label.setToolTip("Number of optimization iterations")
 
         self._iterations_spin = QSpinBox()
@@ -124,10 +125,10 @@ class LatentSpaceSelectorWidget(QWidget):
         self._iterations_spin.setValue(1000)
         self._iterations_spin.setSingleStep(250)
         self._iterations_spin.setToolTip("More = better convergence")
+        self._iterations_spin.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        iter_layout.addWidget(iter_label)
-        iter_layout.addWidget(self._iterations_spin)
-        iter_layout.addStretch()
+        iter_layout.addWidget(iter_label, 0)
+        iter_layout.addWidget(self._iterations_spin, 1)
         tsne_layout.addLayout(iter_layout)
 
         self._tsne_params_widget.setLayout(tsne_layout)
@@ -149,7 +150,11 @@ class LatentSpaceSelectorWidget(QWidget):
 
         group_box.setLayout(group_layout)
         layout.addWidget(group_box)
+        layout.addStretch()  # Add stretch at bottom to prevent vertical expansion
         self.setLayout(layout)
+
+        # Set size policy to prevent unnecessary expansion
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
 
         # Initially disabled
         self._set_enabled(False)
