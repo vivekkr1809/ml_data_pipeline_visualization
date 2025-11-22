@@ -117,9 +117,9 @@ class PCAAnalyzer(IAnalyzer):
         metadata = {
             'feature_columns': feature_columns,
             'target_column': target_column,
-            'pc1': pc1,
-            'pc2': pc2,
-            'pc3': pc3,
+            'dim1': pc1,  # First principal component
+            'dim2': pc2,  # Second principal component
+            'dim3': pc3,  # Third principal component (if requested)
             'target_labels': target_labels,
             'pca_components': pca.components_,  # Eigenvectors
             'original_mask': mask  # Track which rows were kept
