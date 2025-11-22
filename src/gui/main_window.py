@@ -8,6 +8,7 @@ from src.core.logging_config import get_logger
 
 from src.gui.widgets.data_loader import DataLoaderWidget
 from src.gui.widgets.column_selector import ColumnSelectorWidget
+from src.gui.widgets.latent_space_selector import LatentSpaceSelectorWidget
 from src.gui.widgets.plot_widget import PlotWidget
 from src.gui.widgets.plotly_widget import PlotlyWidget
 from src.gui.widgets.metrics_widget import MetricsWidget
@@ -15,11 +16,15 @@ from src.gui.widgets.plot_options_widget import PlotOptionsWidget
 
 from src.analysis.correlation_analyzer import CorrelationAnalyzer
 from src.analysis.contour_analyzer import ContourAnalyzer
+from src.analysis.pca_analyzer import PCAAnalyzer
+from src.analysis.tsne_analyzer import TSNEAnalyzer
 
 from src.visualization.renderers.correlation_renderer import CorrelationRenderer
 from src.visualization.renderers.contour_renderer import ContourRenderer
 from src.visualization.renderers.plotly_correlation_renderer import PlotlyCorrelationRenderer
 from src.visualization.renderers.plotly_contour_renderer import PlotlyContourRenderer
+from src.visualization.renderers.latent_space_renderer import LatentSpaceRenderer
+from src.visualization.renderers.plotly_latent_space_renderer import PlotlyLatentSpaceRenderer
 
 from src.core.interfaces.renderer import RenderConfig
 
@@ -40,12 +45,16 @@ class MainWindow(QMainWindow):
         # Initialize analyzers
         self._correlation_analyzer = CorrelationAnalyzer()
         self._contour_analyzer = ContourAnalyzer()
+        self._pca_analyzer = PCAAnalyzer()
+        self._tsne_analyzer = TSNEAnalyzer()
 
         # Initialize renderers
         self._correlation_renderer = CorrelationRenderer()
         self._contour_renderer = ContourRenderer()
         self._plotly_correlation_renderer = PlotlyCorrelationRenderer()
         self._plotly_contour_renderer = PlotlyContourRenderer()
+        self._latent_space_renderer = LatentSpaceRenderer()
+        self._plotly_latent_space_renderer = PlotlyLatentSpaceRenderer()
 
         # Current state
         self._current_data: Optional[pd.DataFrame] = None
@@ -76,12 +85,19 @@ class MainWindow(QMainWindow):
         # Add widgets to left panel
         self._data_loader = DataLoaderWidget()
         self._plot_options = PlotOptionsWidget()
+
+        # Create stacked widget for column selectors (regular vs latent space)
+        self._selector_stack = QStackedWidget()
         self._column_selector = ColumnSelectorWidget()
+        self._latent_space_selector = LatentSpaceSelectorWidget()
+        self._selector_stack.addWidget(self._column_selector)   # Index 0
+        self._selector_stack.addWidget(self._latent_space_selector)  # Index 1
+
         self._metrics_widget = MetricsWidget()
 
         left_layout.addWidget(self._data_loader)
         left_layout.addWidget(self._plot_options)
-        left_layout.addWidget(self._column_selector)
+        left_layout.addWidget(self._selector_stack)
         left_layout.addWidget(self._metrics_widget)
         left_layout.addStretch()
 
@@ -125,6 +141,9 @@ class MainWindow(QMainWindow):
         # Columns selected signal
         self._column_selector.columns_selected.connect(self._on_columns_selected)
 
+        # Latent space analysis requested signal
+        self._latent_space_selector.analysis_requested.connect(self._on_latent_space_analysis)
+
     def _on_data_loaded(self, data: pd.DataFrame, file_path: str):
         """
         Handle data loaded event
@@ -135,8 +154,9 @@ class MainWindow(QMainWindow):
         """
         self._current_data = data
 
-        # Update column selector
+        # Update column selectors
         self._column_selector.set_data(data)
+        self._latent_space_selector.set_data(data)
 
         # Clear previous results
         self._metrics_widget.clear()
@@ -152,12 +172,24 @@ class MainWindow(QMainWindow):
         Handle plot type change
 
         Args:
-            plot_type: 'correlation' or 'contour'
+            plot_type: 'correlation', 'contour', 'pca', or 'tsne'
         """
         logger.info(f"Plot type changed to: {plot_type}")
         self._current_plot_type = plot_type
-        self._column_selector.set_plot_type(plot_type)
-        self._status_bar.showMessage(f"Plot type: {plot_type.capitalize()}")
+
+        # Switch selector widget based on plot type
+        if plot_type in ['pca', 'tsne']:
+            # Show latent space selector
+            self._selector_stack.setCurrentIndex(1)
+            self._latent_space_selector.set_plot_type(plot_type)
+            logger.debug("Switched to latent space selector")
+        else:
+            # Show regular column selector
+            self._selector_stack.setCurrentIndex(0)
+            self._column_selector.set_plot_type(plot_type)
+            logger.debug("Switched to column selector")
+
+        self._status_bar.showMessage(f"Plot type: {plot_type.upper()}")
 
     def _on_mode_changed(self, mode: str):
         """
@@ -318,3 +350,152 @@ class MainWindow(QMainWindow):
         self._status_bar.showMessage(
             f"Contour plot generated - {z_col} (Range = {z_range:.2f})"
         )
+
+    def _on_latent_space_analysis(self, plot_type: str, params: dict):
+        """
+        Handle latent space analysis request
+
+        Args:
+            plot_type: 'pca' or 'tsne'
+            params: Analysis parameters dictionary
+        """
+        logger.info(f"Latent space analysis requested - Type: {plot_type}")
+        logger.debug(f"Parameters: {params}")
+
+        if self._current_data is None:
+            logger.warning("Attempted to generate latent space plot with no data loaded")
+            QMessageBox.warning(self, "No Data", "Please load a CSV or Parquet file first")
+            return
+
+        try:
+            # Update status
+            self._status_bar.showMessage(f"Generating {plot_type.upper()} latent space visualization...")
+            logger.info(f"Generating {plot_type} latent space plot in {self._current_mode} mode")
+
+            if plot_type == 'pca':
+                self._generate_pca_plot(params)
+            else:  # tsne
+                self._generate_tsne_plot(params)
+
+        except Exception as e:
+            # Show error
+            logger.error(f"Failed to generate latent space plot: {e}", exc_info=True)
+            logger.error(f"Plot context - Type: {plot_type}, Mode: {self._current_mode}")
+            logger.error(f"Parameters: {params}")
+            logger.error(f"Data shape: {self._current_data.shape if self._current_data is not None else 'None'}")
+            QMessageBox.critical(
+                self,
+                "Analysis Error",
+                f"Failed to generate {plot_type.upper()} plot:\n{str(e)}\n\nCheck logs for details."
+            )
+            self._status_bar.showMessage(f"Error generating {plot_type.upper()} plot")
+
+    def _generate_pca_plot(self, params: dict):
+        """Generate PCA latent space plot"""
+        logger.info("Performing PCA analysis")
+
+        # Perform analysis
+        analysis_result = self._pca_analyzer.analyze(self._current_data, **params)
+
+        # Clear metrics (PCA has its own info shown in plot)
+        self._metrics_widget.clear()
+
+        # Get metadata
+        metadata = analysis_result.metadata
+        metrics = analysis_result.metrics
+
+        # Create render configuration
+        config = RenderConfig(
+            title="PCA Latent Space",
+            interactive=(self._current_mode == 'interactive')
+        )
+
+        # Render plot based on mode
+        if self._current_mode == 'interactive':
+            # Use Plotly renderer
+            figure = self._plotly_latent_space_renderer.render(
+                self._current_data,
+                config,
+                dim1=metadata['dim1'],
+                dim2=metadata['dim2'],
+                dim3=metadata.get('dim3'),
+                target_labels=metadata.get('target_labels'),
+                analysis_type='pca',
+                metrics=metrics
+            )
+            self._plotly_plot.set_figure(figure)
+        else:
+            # Use Matplotlib renderer
+            figure = self._latent_space_renderer.render(
+                self._current_data,
+                config,
+                dim1=metadata['dim1'],
+                dim2=metadata['dim2'],
+                dim3=metadata.get('dim3'),
+                target_labels=metadata.get('target_labels'),
+                analysis_type='pca',
+                metrics=metrics
+            )
+            self._matplotlib_plot.set_figure(figure)
+
+        # Update status
+        total_var = sum(metrics['explained_variance'][:params.get('n_components', 2)]) * 100
+        self._status_bar.showMessage(
+            f"PCA plot generated - {total_var:.1f}% variance explained"
+        )
+        logger.info(f"PCA plot generated successfully - {total_var:.1f}% variance explained")
+
+    def _generate_tsne_plot(self, params: dict):
+        """Generate t-SNE latent space plot"""
+        logger.info("Performing t-SNE analysis")
+
+        # Perform analysis
+        analysis_result = self._tsne_analyzer.analyze(self._current_data, **params)
+
+        # Clear metrics (t-SNE has its own info shown in plot)
+        self._metrics_widget.clear()
+
+        # Get metadata
+        metadata = analysis_result.metadata
+        metrics = analysis_result.metrics
+
+        # Create render configuration
+        config = RenderConfig(
+            title="t-SNE Latent Space",
+            interactive=(self._current_mode == 'interactive')
+        )
+
+        # Render plot based on mode
+        if self._current_mode == 'interactive':
+            # Use Plotly renderer
+            figure = self._plotly_latent_space_renderer.render(
+                self._current_data,
+                config,
+                dim1=metadata['dim1'],
+                dim2=metadata['dim2'],
+                dim3=metadata.get('dim3'),
+                target_labels=metadata.get('target_labels'),
+                analysis_type='tsne',
+                metrics=metrics
+            )
+            self._plotly_plot.set_figure(figure)
+        else:
+            # Use Matplotlib renderer
+            figure = self._latent_space_renderer.render(
+                self._current_data,
+                config,
+                dim1=metadata['dim1'],
+                dim2=metadata['dim2'],
+                dim3=metadata.get('dim3'),
+                target_labels=metadata.get('target_labels'),
+                analysis_type='tsne',
+                metrics=metrics
+            )
+            self._matplotlib_plot.set_figure(figure)
+
+        # Update status
+        kl_div = metrics.get('kl_divergence', 0.0)
+        self._status_bar.showMessage(
+            f"t-SNE plot generated - KL divergence: {kl_div:.4f}"
+        )
+        logger.info(f"t-SNE plot generated successfully - KL divergence: {kl_div:.4f}")
