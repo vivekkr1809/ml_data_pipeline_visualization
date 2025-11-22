@@ -44,13 +44,18 @@ class CorrelationAnalyzer(IAnalyzer):
             raise ValueError(f"Columns {column_x} or {column_y} not found in data")
 
         # Get clean data (remove NaN values)
-        clean_data = data[[column_x, column_y]].dropna()
+        # Handle case where x and y are the same column
+        if column_x == column_y:
+            clean_data = data[[column_x]].dropna()
+            x = clean_data[column_x].values
+            y = clean_data[column_x].values
+        else:
+            clean_data = data[[column_x, column_y]].dropna()
+            x = clean_data[column_x].values
+            y = clean_data[column_y].values
 
         if len(clean_data) < 2:
             raise ValueError("Insufficient data points for analysis (need at least 2)")
-
-        x = clean_data[column_x].values
-        y = clean_data[column_y].values
 
         # Calculate linear regression
         slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
@@ -106,13 +111,12 @@ class CorrelationAnalyzer(IAnalyzer):
         if data is None or data.empty:
             return False
 
-        # Need at least 2 columns
-        if len(data.columns) < self._required_columns:
-            return False
-
         # Check if specified columns exist and are numeric
-        column_x = kwargs.get('column_x', data.columns[0])
-        column_y = kwargs.get('column_y', data.columns[1])
+        column_x = kwargs.get('column_x', data.columns[0] if len(data.columns) > 0 else None)
+        column_y = kwargs.get('column_y', data.columns[1] if len(data.columns) > 1 else data.columns[0] if len(data.columns) > 0 else None)
+
+        if column_x is None or column_y is None:
+            return False
 
         if column_x not in data.columns or column_y not in data.columns:
             return False
@@ -124,7 +128,12 @@ class CorrelationAnalyzer(IAnalyzer):
             return False
 
         # Need at least 2 data points
-        clean_data = data[[column_x, column_y]].dropna()
+        # Handle case where x and y are the same column
+        if column_x == column_y:
+            clean_data = data[[column_x]].dropna()
+        else:
+            clean_data = data[[column_x, column_y]].dropna()
+
         if len(clean_data) < 2:
             return False
 
