@@ -1,10 +1,12 @@
 # Core dependencies
 PyQt6>=6.4.0
+PyQt6-WebEngine>=6.4.0
 pandas>=1.5.0
 numpy>=1.23.0
 scipy>=1.9.0
 matplotlib>=3.6.0
+plotly>=5.11.0
+kaleido>=0.2.1
 
 # Optional: For future enhancements
-# plotly>=5.11.0  # For interactive plots
 # scikit-learn>=1.1.0  # For advanced analytics

@@ -1,20 +1,50 @@
-# ML Data Pipeline Visualizer - MVP
+# ML Data Pipeline Visualizer
 
-A lightweight, extensible GUI application for visualizing ML data pipelines with a focus on interactivity and low latency.
+A lightweight, extensible GUI application for visualizing ML data pipelines with support for **interactive plots** and **contour visualization**. Built with a focus on interactivity, low latency, and clean architecture.
 
-## Features (MVP v0.1.0)
+## 🎉 New Features (v0.2.0)
 
+### Interactive Plotly Mode
+- **Fully Interactive Plots**: Pan, zoom, hover tooltips with Plotly
+- **High-Resolution Export**: Export plots as PNG with configurable DPI
+- **Real-time Interaction**: Smooth, responsive visualizations
+- **Toggle Mode**: Switch between Static (Matplotlib) and Interactive (Plotly)
+
+### Contour Plot Support
+- **3D Data Visualization**: Visualize X, Y, Z relationships
+- **2D Filled Contours**: Heatmap-style contour plots
+- **3D Surface Plots**: Full 3D interactive surface visualization
+- **Grid Interpolation**: Linear and cubic interpolation methods
+- **Surface Statistics**: Min, max, mean, gradient calculations
+
+## Features
+
+### Data Loading & Management
 - **CSV Data Loading**: Load CSV/TSV files with automatic validation
-- **Column Selection**: Interactive selection of X and Y columns from numeric data
-- **Correlation Plots**: High-quality scatter plots with regression lines
+- **Column Selection**: Interactive selection of columns (2 for correlation, 3 for contour)
+- **Sample Datasets**: Included sample data for testing
+
+### Correlation Analysis
+- **Scatter Plots with Regression**: High-quality visualization with trend lines
 - **Linearity Metrics**: Real-time calculation and display of:
   - Slope and Intercept
   - R² (Coefficient of Determination)
   - RMSE (Root Mean Square Error)
   - Pearson correlation coefficient
   - P-value and Standard Error
-- **Interactive Visualization**: Pan, zoom, and explore your data
-- **Clean Architecture**: Built with SOLID principles for extensibility
+- **Static & Interactive Modes**: Matplotlib or Plotly rendering
+
+### Contour Visualization
+- **2D Contour Maps**: Filled contours with customizable levels
+- **3D Surface Plots**: Fully rotatable 3D surfaces
+- **Interpolation**: Smooth surfaces from scattered data points
+- **Original Data Overlay**: Show raw data points on contours
+
+### Architecture & Extensibility
+- **Clean Architecture**: Built with SOLID principles
+- **Plugin-Ready**: Easy to add new plot types, data sources, analyzers
+- **Multiple Renderers**: Matplotlib and Plotly support
+- **Dependency Injection**: All components are swappable
 
 ## Architecture
 
@@ -96,10 +126,23 @@ ml-visualizer
 ### Workflow
 
 1. **Load Data**: Click "Load CSV File" and select your CSV file
-2. **Select Columns**: Choose X and Y columns from the numeric columns
-3. **Generate Plot**: Click "Generate Plot" to create the visualization
-4. **Explore**: Use the interactive toolbar to zoom, pan, and save the plot
-5. **Analyze**: Review the linearity metrics in the left panel
+2. **Choose Plot Type**: Select "Correlation" or "Contour" from Plot Options
+3. **Select Mode**: Choose "Static (Matplotlib)" or "Interactive (Plotly)"
+4. **Select Columns**:
+   - **Correlation**: Choose X and Y columns
+   - **Contour**: Choose X, Y, and Z columns
+5. **Generate Plot**: Click "Generate Plot" to create the visualization
+6. **Interact**:
+   - **Static Mode**: Use toolbar to pan, zoom, save
+   - **Interactive Mode**: Hover for tooltips, pan, zoom, rotate (3D)
+7. **Analyze**: Review metrics in the left panel (correlation plots)
+
+### Sample Datasets
+
+Try the included sample datasets:
+- `sample_data.csv`: Temperature, pressure, humidity, power output (correlation)
+- `sample_contour_data.csv`: X, Y positions with temperature, pressure, efficiency (contour)
+- `sample_terrain_data.csv`: Longitude, latitude, elevation, rainfall, vegetation (contour)
 
 ## Extending the Application
 
