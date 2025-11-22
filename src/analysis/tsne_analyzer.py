@@ -101,7 +101,7 @@ class TSNEAnalyzer(IAnalyzer):
         tsne = TSNE(
             n_components=n_components,
             perplexity=perplexity,
-            n_iter=n_iter,
+            max_iter=n_iter,  # Changed from n_iter to max_iter for scikit-learn compatibility
             learning_rate=learning_rate,
             random_state=random_state,
             verbose=0
