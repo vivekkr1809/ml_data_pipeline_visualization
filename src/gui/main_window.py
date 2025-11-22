@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt6.QtCore import Qt
 import pandas as pd
 from typing import Optional
+from src.core.logging_config import get_logger
 
 from src.gui.widgets.data_loader import DataLoaderWidget
 from src.gui.widgets.column_selector import ColumnSelectorWidget
@@ -22,6 +23,8 @@ from src.visualization.renderers.plotly_contour_renderer import PlotlyContourRen
 
 from src.core.interfaces.renderer import RenderConfig
 
+logger = get_logger(__name__)
+
 
 class MainWindow(QMainWindow):
     """
@@ -32,6 +35,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         """Initialize main window"""
         super().__init__()
+        logger.info("Initializing main window")
 
         # Initialize analyzers
         self._correlation_analyzer = CorrelationAnalyzer()
@@ -150,6 +154,7 @@ class MainWindow(QMainWindow):
         Args:
             plot_type: 'correlation' or 'contour'
         """
+        logger.info(f"Plot type changed to: {plot_type}")
         self._current_plot_type = plot_type
         self._column_selector.set_plot_type(plot_type)
         self._status_bar.showMessage(f"Plot type: {plot_type.capitalize()}")
@@ -161,13 +166,16 @@ class MainWindow(QMainWindow):
         Args:
             mode: 'static' or 'interactive'
         """
+        logger.info(f"Rendering mode changed to: {mode}")
         self._current_mode = mode
 
         # Switch plot widget
         if mode == 'interactive':
             self._plot_stack.setCurrentIndex(1)  # Plotly
+            logger.debug("Switched to Plotly widget")
         else:
             self._plot_stack.setCurrentIndex(0)  # Matplotlib
+            logger.debug("Switched to Matplotlib widget")
 
         self._status_bar.showMessage(f"Rendering mode: {mode.capitalize()}")
 
@@ -180,13 +188,18 @@ class MainWindow(QMainWindow):
             y_col: Y column name
             z_col: Z column name (empty for correlation)
         """
+        logger.info(f"Columns selected - X: {x_col}, Y: {y_col}, Z: {z_col}")
+        logger.debug(f"Plot type: {self._current_plot_type}, Mode: {self._current_mode}")
+
         if self._current_data is None:
+            logger.warning("Attempted to generate plot with no data loaded")
             QMessageBox.warning(self, "No Data", "Please load a CSV file first")
             return
 
         try:
             # Update status
             self._status_bar.showMessage("Generating plot...")
+            logger.info(f"Generating {self._current_plot_type} plot in {self._current_mode} mode")
 
             if self._current_plot_type == 'correlation':
                 self._generate_correlation_plot(x_col, y_col)
@@ -195,10 +208,13 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             # Show error
+            logger.error(f"Failed to generate plot: {e}", exc_info=True)
+            logger.error(f"Plot context - Type: {self._current_plot_type}, Mode: {self._current_mode}")
+            logger.error(f"Data shape: {self._current_data.shape if self._current_data is not None else 'None'}")
             QMessageBox.critical(
                 self,
                 "Plot Error",
-                f"Failed to generate plot:\n{str(e)}"
+                f"Failed to generate plot:\n{str(e)}\n\nCheck logs for details."
             )
             self._status_bar.showMessage("Error generating plot")
 
