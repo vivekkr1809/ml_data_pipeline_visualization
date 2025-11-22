@@ -79,8 +79,9 @@ class PlotlyWidget(QWidget):
         """
         try:
             # Generate HTML from Plotly figure
+            # Use include_plotlyjs=True to embed the library (works offline)
             html = figure.to_html(
-                include_plotlyjs='cdn',
+                include_plotlyjs=True,
                 config={
                     'displayModeBar': True,
                     'displaylogo': False,
