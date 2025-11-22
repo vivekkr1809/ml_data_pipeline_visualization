@@ -5,6 +5,10 @@ from PyQt6.QtCore import QUrl
 import plotly.graph_objects as go
 import tempfile
 import os
+import sys
+from src.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class PlotlyWidget(QWidget):
@@ -18,6 +22,7 @@ class PlotlyWidget(QWidget):
         super().__init__(parent)
         self._web_view = None
         self._temp_file = None
+        logger.debug("PlotlyWidget initialized")
         self._init_ui()
 
     def _init_ui(self):
@@ -78,6 +83,9 @@ class PlotlyWidget(QWidget):
             figure: Plotly Figure to display
         """
         try:
+            logger.info("Generating Plotly figure HTML")
+            logger.debug(f"Platform: {sys.platform}, Default encoding: {sys.getdefaultencoding()}")
+
             # Generate HTML from Plotly figure
             # Use include_plotlyjs=True to embed the library (works offline)
             html = figure.to_html(
@@ -96,22 +104,72 @@ class PlotlyWidget(QWidget):
                 }
             )
 
+            html_size = len(html)
+            logger.debug(f"Generated HTML size: {html_size / 1024:.2f} KB")
+
             # Clean up previous temp file
             if self._temp_file and os.path.exists(self._temp_file):
                 try:
+                    logger.debug(f"Cleaning up previous temp file: {self._temp_file}")
                     os.unlink(self._temp_file)
-                except:
-                    pass
+                except Exception as cleanup_err:
+                    logger.warning(f"Failed to clean up temp file: {cleanup_err}")
 
             # Create temporary file with UTF-8 encoding to handle Unicode characters
+            logger.debug("Creating temporary HTML file with UTF-8 encoding")
             with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
                 f.write(html)
                 self._temp_file = f.name
 
+            logger.info(f"Plotly HTML written to: {self._temp_file}")
+            logger.debug(f"Temp file size: {os.path.getsize(self._temp_file) / 1024:.2f} KB")
+
             # Load in web view
-            self._web_view.setUrl(QUrl.fromLocalFile(self._temp_file))
+            file_url = QUrl.fromLocalFile(self._temp_file)
+            logger.debug(f"Loading URL in QWebEngineView: {file_url.toString()}")
+            self._web_view.setUrl(file_url)
+
+            logger.info("Successfully loaded Plotly figure")
+
+        except UnicodeEncodeError as e:
+            logger.error(f"Unicode encoding error: {e}", exc_info=True)
+            logger.error(f"Platform: {sys.platform}, File encoding used: utf-8")
+            error_html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        margin: 0;
+                        font-family: Arial, sans-serif;
+                        background-color: #f5f5f5;
+                    }}
+                    .error {{
+                        text-align: center;
+                        color: #d32f2f;
+                        font-size: 14px;
+                        padding: 20px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="error">
+                    <h3>Unicode Encoding Error</h3>
+                    <p>{str(e)}</p>
+                    <p style="font-size: 12px; margin-top: 20px;">Check logs for details</p>
+                </div>
+            </body>
+            </html>
+            """
+            self._web_view.setHtml(error_html)
 
         except Exception as e:
+            logger.error(f"Unexpected error displaying Plotly figure: {e}", exc_info=True)
+            logger.error(f"Figure type: {type(figure)}")
             error_html = f"""
             <!DOCTYPE html>
             <html>
@@ -138,6 +196,7 @@ class PlotlyWidget(QWidget):
                 <div class="error">
                     <h3>Error displaying plot</h3>
                     <p>{str(e)}</p>
+                    <p style="font-size: 12px; margin-top: 20px;">Check logs/ml_visualizer_*.log for details</p>
                 </div>
             </body>
             </html>
