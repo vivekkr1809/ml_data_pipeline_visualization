@@ -21,6 +21,36 @@ class LatentSpaceRenderer(IRenderer):
         """Initialize latent space renderer"""
         logger.debug("LatentSpaceRenderer initialized")
 
+    def get_renderer_type(self) -> str:
+        """Get the type of renderer"""
+        return "latent_space_matplotlib"
+
+    def validate_data(self, data: pd.DataFrame, **kwargs) -> bool:
+        """
+        Validate if data is suitable for latent space rendering
+
+        Args:
+            data: DataFrame to validate
+            **kwargs: Must contain dim1 and dim2 arrays
+
+        Returns:
+            True if data is valid
+        """
+        # For latent space, we validate the transformed coordinates, not the original data
+        dim1 = kwargs.get('dim1')
+        dim2 = kwargs.get('dim2')
+
+        if dim1 is None or dim2 is None:
+            return False
+
+        if len(dim1) == 0 or len(dim2) == 0:
+            return False
+
+        if len(dim1) != len(dim2):
+            return False
+
+        return True
+
     def render(self, data: pd.DataFrame, config: RenderConfig, **kwargs) -> Figure:
         """
         Render latent space visualization
