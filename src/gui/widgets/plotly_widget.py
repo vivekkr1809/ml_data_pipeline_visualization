@@ -103,8 +103,8 @@ class PlotlyWidget(QWidget):
                 except:
                     pass
 
-            # Create temporary file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+            # Create temporary file with UTF-8 encoding to handle Unicode characters
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
                 f.write(html)
                 self._temp_file = f.name
 
